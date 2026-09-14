@@ -1,101 +1,514 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cooking Timer</title>
 <style>
-:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#171717;background:#f7f7f5}
-*{box-sizing:border-box}body{margin:0;padding:24px}
-main{max-width:620px;margin:auto}
-h1{font-size:20px;margin:0 0 18px}
-section{background:white;border:1px solid #ddd;border-radius:18px;padding:18px;margin-bottom:14px}
-.display{text-align:center;font-size:76px;font-variant-numeric:tabular-nums;letter-spacing:.03em;padding:20px 0}
-.controls,.presets{display:flex;flex-wrap:wrap;gap:8px}
-button,input{font:inherit;min-height:44px;border-radius:12px}
-button{border:1px solid #ccc;background:white;padding:0 16px;cursor:pointer}
-button.primary{background:#171717;color:white;border-color:#171717}
-input{border:1px solid #ccc;padding:0 12px;width:100%}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.add-grid{display:grid;grid-template-columns:1fr 100px 100px;gap:8px}
-.preset{flex:1 1 150px;text-align:left;padding:10px 12px}
-.preset strong,.preset span{display:block}
-.preset span{color:#777;font-size:14px;margin-top:2px}
-.msg{color:#666;font-size:14px;min-height:20px;margin:8px 0 0}
-@media(max-width:560px){.add-grid{grid-template-columns:1fr 1fr}.add-grid input:first-child{grid-column:1/-1}.add-grid button{grid-column:1/-1}.display{font-size:62px}}
+:root{
+  --bg:#fff7ed; --surface:#fffdf8; --surface2:#fff1df; --text:#3b2f2f;
+  --muted:#7c6f64; --primary:#e85d04; --primary2:#f48c06; --accent:#2a9d8f;
+  --danger:#c44536; --border:#ead8c4; --shadow:0 10px 28px rgba(90,55,25,.10);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:Arial,Helvetica,sans-serif;
+  background:linear-gradient(135deg,var(--bg),var(--surface2)); color:var(--text);
+  min-height:100vh; transition:.25s ease;
+}
+.container{max-width:900px;margin:auto;padding:28px 18px 42px}
+header{text-align:center;margin-bottom:22px}
+header h1{margin:0;font-size:2.1rem}
+header p{margin:7px 0 0;color:var(--muted)}
+.panel{
+  background:var(--surface); border:1px solid var(--border); border-radius:20px;
+  padding:18px; margin-bottom:18px; box-shadow:var(--shadow);
+}
+.panel h2{margin:0 0 14px;font-size:1.15rem}
+.theme-row{display:flex;flex-wrap:wrap;gap:10px}
+.theme-btn{
+  border:2px solid transparent;border-radius:14px;padding:9px 13px;background:var(--surface2);
+  color:var(--text);cursor:pointer;font-weight:700;transition:.2s;
+}
+.theme-btn:hover{transform:translateY(-1px)}
+.theme-btn.active{border-color:var(--text);box-shadow:0 0 0 2px var(--surface)}
+.theme-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+.timer-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:15px;
+  cursor:pointer;transition:.18s ease;
+}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.card:active{transform:translateY(0)}
+.card button{cursor:pointer}
+
+.card h3{margin:0 0 5px;font-size:1rem}
+.card .time{font-size:.9rem;color:var(--muted);margin-bottom:11px}
+.actions{display:flex;gap:7px;flex-wrap:wrap}
+button{
+  border:0;border-radius:11px;padding:9px 12px;cursor:pointer;font-weight:700;
+  transition:.18s ease;font-size:.92rem;
+}
+button:hover{transform:translateY(-1px)}
+.start-card{background:var(--primary);color:white}
+.edit{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.delete{background:#fff0ed;color:var(--danger);border:1px solid #f0c7c0}
+.edit-modal .theme-dialog{max-width:560px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+input{
+  width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:11px;
+  background:var(--surface);color:var(--text);font-size:1rem;
+}
+label{font-size:.82rem;color:var(--muted);display:block;margin-bottom:5px}
+.form-actions{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+.primary{background:var(--primary);color:#fff}
+.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.display{
+  text-align:center;padding:25px 12px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:18px;margin-bottom:14px;
+}
+#display{font-variant-numeric:tabular-nums;font-size:clamp(3rem,11vw,6rem);font-weight:800;letter-spacing:2px}
+.status{min-height:22px;text-align:center;color:var(--muted);margin-top:8px}
+.main-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.small{font-size:.8rem;color:var(--muted);margin-top:10px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.container{padding-top:18px}}
+
+.topbar{display:flex;justify-content:flex-end;margin:-8px 0 8px}
+.theme-icon{
+  width:44px;height:44px;padding:0;border-radius:50%;font-size:1.25rem;
+  background:var(--surface);color:var(--text);border:1px solid var(--border);
+  box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;
+}
+.theme-icon:hover{transform:rotate(12deg) scale(1.04)}
+.countdown-panel{margin-bottom:18px}
+.set-timer-panel{margin-bottom:18px}
+.theme-modal{display:none;position:fixed;inset:0;z-index:1000}
+.theme-modal.open{display:block}
+.theme-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.38);backdrop-filter:blur(3px)}
+.theme-dialog{
+  position:relative;width:min(520px,calc(100% - 30px));margin:9vh auto 0;
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.22);
+  animation:themeIn .16s ease-out;
+}
+.theme-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.theme-dialog-head h2{margin:0;font-size:1.15rem}
+.close-theme{
+  background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  width:36px;height:36px;padding:0;border-radius:50%;
+}
+@keyframes themeIn{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
+
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.section-heading h2{margin:0}
+.add-timer-icon{
+  width:38px;height:38px;padding:0;border-radius:50%;
+  background:var(--primary);color:#fff;border:0;font-size:1.55rem;
+  line-height:1;display:flex;align-items:center;justify-content:center;
+}
+.add-timer-icon:hover{transform:scale(1.05)}
+
+.theme-only-head{margin-bottom:8px}
+.theme-colors-only{gap:9px;justify-content:center}
+.theme-colors-only .theme-btn{
+  min-width:96px;padding:9px 11px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  border:2px solid transparent;
+}
+.theme-colors-only .theme-btn.active{
+  border-color:var(--text);
+  transform:scale(1.03);
+}
+.theme-colors-only .theme-btn:hover{transform:translateY(-1px)}
+.theme-dot{display:inline-block;width:13px;height:13px;flex:0 0 13px;border-radius:50%;margin:0}
 </style>
 </head>
 <body>
-<main>
-<h1>🍳 Cooking Timer</h1>
+<div class="container">
+  <header>
+    <h1>🍳 Cooking Timer</h1>
+    <p>Your kitchen, your timers, your mood.</p>
+  </header>
 
-<section>
-<div id="display" class="display" aria-live="polite">00:00</div>
-<div class="controls" style="justify-content:center">
-<button id="start" class="primary">Start</button>
-<button id="pause">Pause</button>
-<button id="reset">Reset</button>
+  <div class="topbar">
+    <button class="theme-icon" id="themeOpen" aria-label="Change theme" title="Change theme">🎨</button>
+  </div>
+
+  <section class="panel countdown-panel">
+    <div class="display"><div id="display">00:00:00</div></div>
+    <div class="main-actions">
+      <button class="primary" id="toggle">▶ Start</button>
+      <button class="secondary" id="reset">↺ Reset</button>
+    </div>
+    <div class="status" id="status">Choose a timer to begin.</div>
+  </section>
+  <section class="panel set-timer-panel">
+    <h2>⏱️ Set Timer</h2>
+    <div class="small" style="margin-top:-7px;margin-bottom:12px">Set a one-time countdown without saving it as a Timer.</div>
+    <div class="form-grid">
+      <div><label for="setHours">Hours</label><input id="setHours" type="number" min="0" value="0"></div>
+      <div><label for="setMinutes">Minutes</label><input id="setMinutes" type="number" min="0" value="5"></div>
+      <div><label for="setSeconds">Seconds</label><input id="setSeconds" type="number" min="0" value="0"></div>
+    </div>
+    <div class="form-actions">
+      <button class="primary" id="setTimerBtn">Set Timer</button>
+    </div>
+  </section>
+
+  <div class="theme-modal add-modal" id="addModal" aria-hidden="true">
+    <div class="theme-backdrop" id="addBackdrop"></div>
+    <div class="theme-dialog" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+      <div class="theme-dialog-head">
+        <h2 id="addTitle">＋ Add Timer</h2>
+        <button class="close-theme" id="addClose" aria-label="Close">✕</button>
+      </div>
+      <div>
+        <label for="addName">Timer name</label>
+        <input id="addName" placeholder="e.g. Soft Boiled Egg">
+      </div>
+      <div class="form-grid" style="margin-top:10px">
+        <div><label for="addHours">Hours</label><input id="addHours" type="number" min="0" value="0"></div>
+        <div><label for="addMinutes">Minutes</label><input id="addMinutes" type="number" min="0" value="5"></div>
+        <div><label for="addSeconds">Seconds</label><input id="addSeconds" type="number" min="0" value="0"></div>
+      </div>
+      <div class="status" id="addStatus"></div>
+      <div class="form-actions">
+        <button class="primary" id="addSave">Save Timer</button>
+        <button class="secondary" id="addCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <section class="panel">
+    <div class="section-heading">
+      <h2>⏱️ Timers</h2>
+      <button class="add-timer-icon" id="addTimerOpen" type="button" aria-label="Add Timer" title="Add Timer">＋</button>
+    </div>
+    <div class="timer-list" id="timerList"></div>
+  </section>
+
+  <div class="theme-modal edit-modal" id="editModal" aria-hidden="true">
+    <div class="theme-backdrop" id="editBackdrop"></div>
+    <div class="theme-dialog" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="theme-dialog-head">
+        <h2 id="editTitle">✏️ Edit Timer</h2>
+        <button class="close-theme" id="editClose" aria-label="Close">✕</button>
+      </div>
+      <div>
+        <label for="editName">Timer name</label>
+        <input id="editName" placeholder="e.g. Soft Boiled Egg">
+      </div>
+      <div class="form-grid" style="margin-top:10px">
+        <div><label for="editHours">Hours</label><input id="editHours" type="number" min="0" value="0"></div>
+        <div><label for="editMinutes">Minutes</label><input id="editMinutes" type="number" min="0" value="5"></div>
+        <div><label for="editSeconds">Seconds</label><input id="editSeconds" type="number" min="0" value="0"></div>
+      </div>
+      <div class="status" id="editStatus"></div>
+      <div class="form-actions">
+        <button class="primary" id="editSave">Save Changes</button>
+        <button class="secondary" id="editCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="theme-modal" id="themeModal" aria-hidden="true">
+    <div class="theme-backdrop" id="themeClose"></div>
+    <div class="theme-dialog" role="dialog" aria-modal="true" aria-labelledby="themeTitle">
+      <div class="theme-dialog-head theme-only-head">
+        <span></span>
+        <button class="close-theme" id="themeCloseBtn" aria-label="Close">✕</button>
+      </div>
+      <div class="theme-row theme-colors-only" id="themes"></div>
+    </div>
+  </div>
 </div>
-</section>
-
-<section>
-<h2 style="font-size:16px">Set Timer</h2>
-<form id="timerForm" class="grid">
-<label>Minutes<input id="minutes" type="number" min="0" max="999" value="5"></label>
-<label>Seconds<input id="seconds" type="number" min="0" max="59" value="0"></label>
-<button class="primary" style="grid-column:1/-1">Set Timer</button>
-</form>
-<p id="message" class="msg"></p>
-</section>
-
-<section>
-<h2 style="font-size:16px">Custom Buttons</h2>
-<div id="presets" class="presets"></div>
-<form id="presetForm" class="add-grid" style="margin-top:12px">
-<input id="presetName" maxlength="30" placeholder="Button name, e.g. Boiled Egg">
-<input id="presetMinutes" type="number" min="0" max="999" value="5" placeholder="Min">
-<input id="presetSeconds" type="number" min="0" max="59" value="0" placeholder="Sec">
-<button class="primary">Add Custom Button</button>
-</form>
-</section>
-</main>
 
 <script>
-(() => {
-let total=0, remaining=0, interval=null;
-const $=id=>document.getElementById(id);
-const display=$('display'), msg=$('message'), presets=$('presets');
-
-function fmt(n){n=Math.max(0,Math.floor(n));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
-function render(){display.textContent=fmt(remaining)}
-function stop(){if(interval){clearInterval(interval);interval=null}}
-function setTimer(sec){stop();total=Math.max(0,sec);remaining=total;render();msg.textContent=total?'Timer set.':'Please set a time greater than 0.'}
-function start(){
- if(remaining<=0){msg.textContent='Set a timer first.';return}
- if(interval)return;
- msg.textContent='Running...';
- interval=setInterval(()=>{remaining--;render();if(remaining<=0){remaining=0;render();stop();msg.textContent='Time is up!'}} ,1000)
-}
-function addPreset(name,sec){
- const b=document.createElement('button'); b.type='button'; b.className='preset';
- const strong=document.createElement('strong'), span=document.createElement('span');
- strong.textContent=name; span.textContent=fmt(sec); b.append(strong,span);
- b.onclick=()=>setTimer(sec); presets.appendChild(b);
-}
-[['Boiled Egg',420],['Instant Noodles',180],['Rice',1200]].forEach(x=>addPreset(...x));
-$('start').onclick=start;
-$('pause').onclick=()=>{stop();msg.textContent=remaining?'Paused.':'Timer is at 00:00.'};
-$('reset').onclick=()=>{stop();remaining=total;render();msg.textContent='Reset.'};
-$('timerForm').onsubmit=e=>{e.preventDefault();setTimer((Number($('minutes').value)||0)*60+(Number($('seconds').value)||0))};
-$('presetForm').onsubmit=e=>{
- e.preventDefault();
- const name=$('presetName').value.trim(), sec=(Number($('presetMinutes').value)||0)*60+(Number($('presetSeconds').value)||0);
- if(!name){msg.textContent='Please enter a button name.';return}
- if(sec<=0){msg.textContent='Please enter a time greater than 0.';return}
- addPreset(name,sec);$('presetName').value='';msg.textContent='Custom button added.'
+const themes = {
+  tomato:{name:'Tomato', vars:{bg:'#fff7ed',surface:'#fffdf8',surface2:'#fff1df',text:'#3b2f2f',muted:'#7c6f64',primary:'#e85d04',primary2:'#f48c06',accent:'#2a9d8f',danger:'#c44536',border:'#ead8c4'}},
+  ocean:{name:'Ocean', vars:{bg:'#effaff',surface:'#fbfeff',surface2:'#e2f5fb',text:'#173042',muted:'#607886',primary:'#087ea4',primary2:'#19a7ce',accent:'#2a9d8f',danger:'#c44536',border:'#c5e4ed'}},
+  lavender:{name:'Lavender', vars:{bg:'#f8f4ff',surface:'#fffaff',surface2:'#eee6ff',text:'#302747',muted:'#746b86',primary:'#7653c6',primary2:'#9a78df',accent:'#4d9078',danger:'#bd4b68',border:'#ddd0f2'}},
+  matcha:{name:'Matcha', vars:{bg:'#f4faef',surface:'#fcfff9',surface2:'#e6f1dc',text:'#283b27',muted:'#71806b',primary:'#588157',primary2:'#7aa56e',accent:'#b56576',danger:'#b04a4a',border:'#cfe0c5'}},
+  rose:{name:'Rose', vars:{bg:'#fff4f6',surface:'#fffafd',surface2:'#fde5eb',text:'#452b34',muted:'#806b72',primary:'#d45079',primary2:'#e87998',accent:'#7a9e9f',danger:'#b23a48',border:'#edcbd5'}},
+  midnight:{name:'Midnight', vars:{bg:'#151a2b',surface:'#20263b',surface2:'#29314a',text:'#f2f5ff',muted:'#aab3cc',primary:'#7c83fd',primary2:'#9b8cff',accent:'#4dd4ac',danger:'#ff7b7b',border:'#3b4564'}},
+  sky:{name:'Sky', vars:{bg:'#f0f8ff',surface:'#fbfdff',surface2:'#e0f1ff',text:'#26394a',muted:'#6d8191',primary:'#3a86ff',primary2:'#5fa3ff',accent:'#2a9d8f',danger:'#c44536',border:'#c9def2'}},
+  peach:{name:'Peach', vars:{bg:'#fff6f0',surface:'#fffdfa',surface2:'#ffe9dc',text:'#49342d',muted:'#826f67',primary:'#f28c6b',primary2:'#f5a17f',accent:'#6a994e',danger:'#c44536',border:'#efd0c1'}},
+  lemon:{name:'Lemon', vars:{bg:'#fffdf0',surface:'#fffffb',surface2:'#fff7c7',text:'#403d27',muted:'#817d61',primary:'#d4a72c',primary2:'#e6bd46',accent:'#588157',danger:'#b04a4a',border:'#e8dda5'}},
+  mint:{name:'Mint', vars:{bg:'#effcf7',surface:'#fbfffd',surface2:'#ddf6ec',text:'#244139',muted:'#6b817a',primary:'#2a9d8f',primary2:'#48b8a9',accent:'#7b61a8',danger:'#b04a4a',border:'#c7e6da'}},
+  coral:{name:'Coral', vars:{bg:'#fff5f2',surface:'#fffdfc',surface2:'#ffe3dc',text:'#452d2b',muted:'#806d69',primary:'#ef6f61',primary2:'#f38d80',accent:'#457b9d',danger:'#b23a48',border:'#efc8c1'}},
+  plum:{name:'Plum', vars:{bg:'#faf3fb',surface:'#fffaff',surface2:'#f0dff2',text:'#3c2b40',muted:'#78697b',primary:'#9b5de5',primary2:'#b77ae9',accent:'#00a896',danger:'#bd4b68',border:'#ddc9e1'}},
+  forest:{name:'Forest', vars:{bg:'#f2f8f1',surface:'#fcfffb',surface2:'#e1efdf',text:'#26382a',muted:'#6c7c70',primary:'#386641',primary2:'#5a8f62',accent:'#bc6c25',danger:'#b04a4a',border:'#c9ddc7'}},
+  mocha:{name:'Mocha', vars:{bg:'#faf5ef',surface:'#fffdf9',surface2:'#eee1d3',text:'#3e3029',muted:'#7b6a5f',primary:'#8c5e3c',primary2:'#aa7850',accent:'#588157',danger:'#b04a4a',border:'#dfcdbb'}},
+  aurora:{name:'Aurora', vars:{bg:'#f3f7ff',surface:'#fcfdff',surface2:'#e6e9ff',text:'#29304a',muted:'#707890',primary:'#5e60ce',primary2:'#7779dc',accent:'#2a9d8f',danger:'#bd4b68',border:'#d1d4ef'}}
 };
-render();
-})();
+
+const defaults = [
+  {id:'boiled-egg',name:'🥚 Boiled Egg',seconds:420},
+  {id:'instant-noodles',name:'🍜 Instant Noodles',seconds:180},
+  {id:'rice',name:'🍚 Rice',seconds:1200},
+  {id:'steam-broccoli',name:'🥦 Steam Broccoli',seconds:300},
+  {id:'pasta',name:'🍝 Pasta',seconds:480},
+  {id:'roast-chicken',name:'🍗 Roast Chicken',seconds:3600}
+];
+
+let timers = [];
+let selected = null, remaining = 0, interval = null, running = false, editingId = null;
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+
+function format(sec){
+  sec = Math.max(0,Math.floor(sec));
+  const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+function save(){localStorage.setItem('cookingTimerAllTimersV7',JSON.stringify(timers));}
+function load(){
+  const saved=localStorage.getItem('cookingTimerAllTimersV7');
+  if(saved){
+    try { timers=JSON.parse(saved); } catch(e){ timers=[...defaults]; }
+  } else {
+    timers=[...defaults];
+    const oldKeys=['cookingTimerCustomButtonsV6','cookingTimerCustomButtonsV5','cookingTimerCustomButtonsV4','cookingTimerCustomButtonsV3','cookingTimerCustomButtonsV2','cookingTimerCustomButtonsV1'];
+    for(const key of oldKeys){
+      try{
+        const old=JSON.parse(localStorage.getItem(key)||'[]');
+        if(Array.isArray(old)){
+          old.forEach(x=>{
+            if(x && x.name && Number(x.seconds)>0) timers.push({id:'custom-'+Date.now()+'-'+Math.random().toString(16).slice(2),name:x.name,seconds:Number(x.seconds)});
+          });
+        }
+      }catch(e){}
+    }
+    save();
+  }
+}
+function applyTheme(key){
+  const theme=themes[key]||themes.tomato;
+  Object.entries(theme.vars).forEach(([k,v])=>document.documentElement.style.setProperty('--'+k,v));
+  localStorage.setItem('cookingTimerThemeV7',key);
+  document.querySelectorAll('.theme-btn').forEach(b=>{const active=b.dataset.theme===key;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+}
+function renderThemes(){
+  const wrap=$('themes'); wrap.innerHTML='';
+  Object.entries(themes).forEach(([key,t])=>{
+    const b=document.createElement('button'); b.className='theme-btn'; b.dataset.theme=key;
+    b.title=t.name; b.setAttribute('aria-label',t.name);
+    const dot=document.createElement('span'); dot.className='theme-dot'; dot.style.background=t.vars.primary;
+    b.append(dot,t.name);
+    b.setAttribute('aria-pressed','false');
+    b.onclick=()=>{applyTheme(key);closeTheme();}; wrap.appendChild(b);
+  });
+  applyTheme(localStorage.getItem('cookingTimerThemeV7')||'tomato');
+}
+function renderCards(){
+  const list=$('timerList'); list.innerHTML='';
+  timers.forEach(item=>{
+    const card=document.createElement('div'); card.className='card';
+    const h=document.createElement('h3'); h.textContent=item.name;
+    const tm=document.createElement('div'); tm.className='time'; tm.textContent=format(item.seconds);
+    const actions=document.createElement('div'); actions.className='actions';
+    card.addEventListener('click',(e)=>{
+      if(e.target.closest('button')) return;
+      selectTimer(item.id);
+    });
+    const edit=document.createElement('button'); edit.className='edit'; edit.textContent='✏️ Edit';
+    edit.onclick=(e)=>{e.stopPropagation();startEdit(item.id);};
+    const del=document.createElement('button'); del.className='delete'; del.textContent='🗑 Delete';
+    del.onclick=(e)=>{
+      e.stopPropagation();
+      timers=timers.filter(x=>x.id!==item.id);
+      if(selected===item.id){stop();selected=null;remaining=0;updateDisplay();$('status').textContent='Timer deleted.';}
+      save();renderCards();
+    };
+    actions.append(edit,del); card.append(h,tm,actions); list.appendChild(card);
+  });
+}
+function selectTimer(id){
+  const item=timers.find(x=>x.id===id); if(!item)return;
+  stop(); selected=id; remaining=item.seconds; updateDisplay(); $('status').textContent=item.name;
+}
+function startEdit(id){
+  const item=timers.find(x=>x.id===id); if(!item)return;
+  editingId=id; openEditModal(item);
+  $('name').value=item.name;
+  $('hours').value=Math.floor(item.seconds/3600);
+  $('minutes').value=Math.floor((item.seconds%3600)/60);
+  $('seconds').value=item.seconds%60;
+
+}
+function cancelEdit(){
+  editingId=null;
+  $('name').value=''; $('hours').value=0; $('minutes').value=5; $('seconds').value=0;
+  $('cancelEdit').style.display='none';
+}
+$('setTimerBtn').onclick=()=>{
+  const h=Math.max(0,Number($('setHours').value)||0);
+  const m=Math.max(0,Number($('setMinutes').value)||0);
+  const s=Math.max(0,Number($('setSeconds').value)||0);
+  const total=Math.floor(h*3600+m*60+s);
+  if(total<=0){
+    $('status').textContent='Please set a time longer than 0 seconds.';
+    return;
+  }
+  stop();
+  selected='__set__';
+  remaining=total;
+  updateDisplay();
+  $('status').textContent='Custom timer set — ready to start.';
+};
+
+function openAddModal(){
+  $('addName').value='';
+  $('addHours').value=0;
+  $('addMinutes').value=5;
+  $('addSeconds').value=0;
+  $('addStatus').textContent='';
+  $('addModal').classList.add('open');
+  $('addModal').setAttribute('aria-hidden','false');
+}
+function closeAddModal(){
+  $('addModal').classList.remove('open');
+  $('addModal').setAttribute('aria-hidden','true');
+}
+$('addTimerOpen').onclick=openAddModal;
+$('addClose').onclick=closeAddModal;
+$('addBackdrop').onclick=closeAddModal;
+$('addCancel').onclick=closeAddModal;
+$('addSave').onclick=()=>{
+  const name=$('addName').value.trim()||'⏲️ My Timer';
+  const h=Math.max(0,Number($('addHours').value)||0);
+  const m=Math.max(0,Number($('addMinutes').value)||0);
+  const s=Math.max(0,Number($('addSeconds').value)||0);
+  const total=Math.floor(h*3600+m*60+s);
+  if(total<=0){
+    $('addStatus').textContent='Please set a time longer than 0 seconds.';
+    return;
+  }
+  timers.push({
+    id:'custom-'+Date.now()+'-'+Math.random().toString(16).slice(2),
+    name,seconds:total
+  });
+  save();
+  renderCards();
+  closeAddModal();
+  $('status').textContent='Timer saved.';
+};
+
+function openEditModal(item){
+  editingId=item.id;
+  $('editName').value=item.name;
+  $('editHours').value=Math.floor(item.seconds/3600);
+  $('editMinutes').value=Math.floor((item.seconds%3600)/60);
+  $('editSeconds').value=item.seconds%60;
+  $('editModal').classList.add('open');
+  $('editModal').setAttribute('aria-hidden','false');
+}
+function closeEditModal(){
+  editingId=null;
+  $('editModal').classList.remove('open');
+  $('editModal').setAttribute('aria-hidden','true');
+}
+$('editClose').onclick=closeEditModal;
+$('editBackdrop').onclick=closeEditModal;
+$('editCancel').onclick=closeEditModal;
+$('editSave').onclick=()=>{
+  if(!editingId)return;
+  const item=timers.find(x=>x.id===editingId); if(!item)return;
+  const name=$('editName').value.trim()||'⏲️ My Timer';
+  const h=Math.max(0,Number($('editHours').value)||0), m=Math.max(0,Number($('editMinutes').value)||0), s=Math.max(0,Number($('editSeconds').value)||0);
+  const total=Math.floor(h*3600+m*60+s);
+  if(total<=0){$('editStatus').textContent='Please set a time longer than 0 seconds.';return;}
+  item.name=name;item.seconds=total;
+  if(selected===item.id){remaining=total;updateDisplay();$('status').textContent=item.name;}
+  save();renderCards();closeEditModal();
+};
+
+function updateDisplay(){$('display').textContent=format(remaining);}
+let ringtoneTimer=null, ringtoneCtx=null;
+
+function stopRingtone(){
+  if(ringtoneTimer){clearTimeout(ringtoneTimer);ringtoneTimer=null;}
+  if(ringtoneCtx){try{ringtoneCtx.close();}catch(e){} ringtoneCtx=null;}
+}
+
+function playRingtone(){
+  stopRingtone();
+  try{
+    const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+    ringtoneCtx=new C();
+    const playCycle=()=>{
+      if(!ringtoneCtx)return;
+      const ctx=ringtoneCtx;
+      // Soft, warm two-tone chime: noticeable through repetition, without a harsh beep.
+      const notes=[
+        {f:523.25,t:0,d:.34},
+        {f:659.25,t:.16,d:.42},
+        {f:783.99,t:.52,d:.34},
+        {f:659.25,t:.68,d:.42}
+      ];
+      notes.forEach(n=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='sine';o.frequency.value=n.f;
+        o.connect(g);g.connect(ctx.destination);
+        const t=ctx.currentTime+n.t;
+        g.gain.setValueAtTime(.0001,t);
+        g.gain.exponentialRampToValueAtTime(.18,t+.025);
+        g.gain.exponentialRampToValueAtTime(.0001,t+n.d);
+        o.start(t);o.stop(t+n.d+.03);
+      });
+      ringtoneTimer=setTimeout(playCycle,1250);
+    };
+    playCycle();
+  }catch(e){}
+}
+
+function stop(){if(interval){clearInterval(interval);interval=null;}running=false;$('toggle').textContent='▶ Start';}
+$('toggle').onclick=()=>{
+  if(!selected){$('status').textContent='Choose a timer or use Set Timer first.';return;}
+  if(running){stop();$('status').textContent='Paused.';return;}
+  if(remaining<=0 && selected!=='__set__'){
+    const item=timers.find(x=>x.id===selected);
+    if(item) remaining=item.seconds;
+  }
+  if(remaining<=0){$('status').textContent='Set a time longer than 0 seconds first.';return;}
+  running=true;$('toggle').textContent='⏸ Pause';$('status').textContent='Running...';
+  interval=setInterval(()=>{
+    remaining--;updateDisplay();
+    if(remaining<=0){
+      stop();remaining=0;updateDisplay();$('status').textContent='🔔 Time is up!';playRingtone();
+    }
+  },1000);
+};
+$('reset').onclick=()=>{
+  stop();
+  if(selected==='__set__'){
+    // Keep the currently set temporary duration on reset.
+    $('status').textContent='Custom timer reset.';
+    updateDisplay();
+    return;
+  }
+  const item=timers.find(x=>x.id===selected);
+  remaining=item?item.seconds:0;updateDisplay();
+  $('status').textContent=item?item.name:'Choose a timer to begin.';
+};
+
+
+const themeModal=$('themeModal');
+$('themeOpen').onclick=()=>{themeModal.classList.add('open');themeModal.setAttribute('aria-hidden','false');};
+function closeTheme(){themeModal.classList.remove('open');themeModal.setAttribute('aria-hidden','true');}
+$('themeClose').onclick=closeTheme;
+$('themeCloseBtn').onclick=closeTheme;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTheme();closeEditModal();closeAddModal();}});
+document.addEventListener('click',e=>{
+  if(e.target.closest('button')) stopRingtone();
+},true);
+
+
+load();renderThemes();renderCards();updateDisplay();
 </script>
 </body>
 </html>
